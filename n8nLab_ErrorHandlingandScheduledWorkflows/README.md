@@ -12,14 +12,8 @@ This lab demonstrates how to build production-ready workflows in n8n by adding e
 ├── README.md               # This file — full walkthrough
 ├── lab_summary.md          # One-paragraph conceptual summary
 └── screenshots/
-    ├── workflow1_canvas.png          # Daily Data Fetcher full canvas
-    ├── workflow1_retry_settings.png  # HTTP Request retry configuration
-    ├── workflow1_error_trigger.png   # Error Trigger node
-    ├── workflow2_canvas.png          # Daily Summary Generator full canvas
-    ├── workflow2_schedule_trigger.png # Schedule Trigger configuration
-    ├── workflow2_idempotency.png     # IF node idempotency check
-    └── execution_history.png         # Execution history showing retries
-```
+└── json_files/             # n8n workflow schemas in json format
+
 
 ---
 
