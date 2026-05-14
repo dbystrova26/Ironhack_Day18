@@ -1,0 +1,166 @@
+{
+  "name": "Daily Data Fetcher",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "184ea67f-bcbe-4760-8c82-5ec895ab6d18",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/users/octocat",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "2bf1aba0-67cb-48ea-bd6a-d833baf29640",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "50500e53-a512-4541-b0b5-a5bf658b50ac",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        192,
+        176
+      ],
+      "id": "1ead7f86-e5a8-4cba-97c5-d0e45f191da8",
+      "name": "Error Trigger",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c78b2a0d-a289-4869-888d-054da8c18e04",
+              "name": "=Error Message",
+              "value": "={{ $json.error.message }}",
+              "type": "string"
+            },
+            {
+              "id": "1300c5c4-066e-43d9-b882-128a75034389",
+              "name": "Node Name",
+              "value": "={{ $json.error.node.name }}",
+              "type": "string"
+            },
+            {
+              "id": "ac8ee796-39ae-4771-bf42-9de15d9945af",
+              "name": "=Timestamp",
+              "value": "= {{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        176
+      ],
+      "id": "4807713b-fa1d-485a-91f3-64498e74d604",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        608,
+        176
+      ],
+      "id": "aabf7b50-82bf-45ed-aa24-953f224f6fbb",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1,
+    "availableInMCP": false
+  },
+  "versionId": "bfacca1a-1b4f-436b-a308-f2d82a74e0f7",
+  "meta": {
+    "instanceId": "22f60916f9c7b26e6914b0421ec3dd7a647e0e5851a764c1369ac1e12e3255be"
+  },
+  "id": "Vtf3Ojg6RSIHeMdS",
+  "tags": []
+}
