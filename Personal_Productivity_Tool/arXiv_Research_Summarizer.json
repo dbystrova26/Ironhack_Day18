@@ -1,0 +1,211 @@
+{
+  "name": "arXiv Research Summarizer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "arxiv-summarizer",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "6f5a03e8-9c14-4301-b982-536223f497dc",
+      "name": "Webhook",
+      "webhookId": "YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "jsCode": "const url = $input.first().json.body.arxiv_url;\nconst paperId = url.split('/abs/')[1];\n\nreturn [{\n  json: {\n    paper_id: paperId,\n    arxiv_url: url\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [208, 0],
+      "id": "7f5a88bd-de88-4adf-82b1-0909ec835f2f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "=https://export.arxiv.org/api/query",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id_list",
+              "value": "={{ $json.paper_id }}"
+            },
+            {
+              "name": "start",
+              "value": "0"
+            },
+            {
+              "name": "max_results",
+              "value": "=1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-arxiv-summarizer/1.0 (research tool)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [384, 0],
+      "id": "c0f05f5c-1072-4fcf-8695-e56a985a5b68",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const xmlData = $input.first().json.data;\n\nconst getTag = (xml, tag) => {\n  const match = xml.match(new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)</${tag}>`));\n  return match ? match[1].trim() : '';\n};\n\nconst titleMatches = [...xmlData.matchAll(/<title>([\\s\\S]*?)<\\/title>/g)];\nconst title = titleMatches.length > 1 ? titleMatches[1][1].trim() : titleMatches[0][1].trim();\n\nconst abstract = getTag(xmlData, 'summary');\nconst authorMatches = xmlData.matchAll(/<name>([\\s\\S]*?)<\\/name>/g);\nconst authors = [...authorMatches].map(m => m[1].trim()).join(', ');\nconst category = xmlData.match(/term=\"([^\"]+)\"/)?.[1] || 'Other';\nconst arxiv_url = $('Code in JavaScript').first().json.arxiv_url || '';\n\nreturn [{\n  json: {\n    title,\n    abstract,\n    authors,\n    category,\n    arxiv_url\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [592, 0],
+      "id": "910fd190-e64d-4b86-9003-ad10a5704ff2",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_ANTHROPIC_API_KEY"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-haiku-4-5-20251001\",\n  \"max_tokens\": 150,\n  \"messages\": [\n    {\n      \"role\": \"user\", \n      \"content\": \"Summarize this research paper abstract in 2-3 sentences for non-experts: {{ $json.abstract }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [800, 0],
+      "id": "6992261a-1331-40b8-aaf1-892438b44874",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst summary = response.content[0].text;\n\nreturn [{\n  json: {\n    title: $('Code in JavaScript1').first().json.title,\n    authors: $('Code in JavaScript1').first().json.authors,\n    arxiv_url: $('Code in JavaScript1').first().json.arxiv_url,\n    category: $('Code in JavaScript1').first().json.category,\n    abstract: $('Code in JavaScript1').first().json.abstract,\n    summary: summary\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1008, 0],
+      "id": "9d85bb8d-b0ec-4244-b9c1-2480259bb30e",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const title = $input.first().json.title || 'Unknown Title';\nconst authors = $input.first().json.authors || '';\nconst summary = $input.first().json.summary || '';\nconst arxiv_url = $input.first().json.arxiv_url || '';\n\nconst clean = (str) => str.replace(/[\\n\\r\\t]/g, ' ').replace(/\"/g, \"'\").trim();\nconst truncate = (str, max = 1900) => {\n  const cleaned = clean(str);\n  return cleaned.length > max ? cleaned.substring(0, max) + '...' : cleaned;\n};\n\nconst now = new Date().toISOString();\n\nconst body = {\n  parent: { database_id: \"YOUR_NOTION_DATABASE_ID\" },\n  properties: {\n    Title: { title: [{ text: { content: truncate(title) } }] },\n    Authors: { rich_text: [{ text: { content: truncate(authors) } }] },\n    Summary: { rich_text: [{ text: { content: truncate(summary) } }] },\n    Category: { select: { name: \"CS\" } },\n    url: { url: arxiv_url },\n    \"Date Added\": { date: { start: now } }\n  }\n};\n\nreturn [{\n  json: {\n    title: truncate(title),\n    authors: truncate(authors),\n    summary: truncate(summary),\n    arxiv_url,\n    notionBody: JSON.stringify(body)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1216, 0],
+      "id": "6b86e07d-7539-494f-8e74-877516a61c14",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/pages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_NOTION_TOKEN"
+            },
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.notionBody }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1424, 0],
+      "id": "00c898ce-6390-46b4-a84f-8a06ef5de254",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Paper added successfully\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [1632, 0],
+      "id": "893d4c65-e32c-4c59-a2df-0ae9d3227836",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Code in JavaScript", "type": "main", "index": 0}]]
+    },
+    "Code in JavaScript": {
+      "main": [[{"node": "HTTP Request", "type": "main", "index": 0}]]
+    },
+    "HTTP Request": {
+      "main": [[{"node": "Code in JavaScript1", "type": "main", "index": 0}]]
+    },
+    "Code in JavaScript1": {
+      "main": [[{"node": "HTTP Request1", "type": "main", "index": 0}]]
+    },
+    "HTTP Request1": {
+      "main": [[{"node": "Code in JavaScript2", "type": "main", "index": 0}]]
+    },
+    "Code in JavaScript2": {
+      "main": [[{"node": "Code in JavaScript3", "type": "main", "index": 0}]]
+    },
+    "Code in JavaScript3": {
+      "main": [[{"node": "HTTP Request2", "type": "main", "index": 0}]]
+    },
+    "HTTP Request2": {
+      "main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
