@@ -1,0 +1,282 @@
+{
+  "name": "Daily Summary Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f81ae446-f75d-4ec1-b213-f31c81e45fc4",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/users/octocat",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "19ac9b91-70a4-486b-bae4-50c949676315",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e7ae0e0d-5f8f-45e4-81f5-2e8f2da798be",
+              "name": "Summary Date",
+              "value": "={{ $now.toISO().split('T')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "612ee821-b9bf-4281-b10e-85e0530cfb88",
+              "name": "Username",
+              "value": "={{ $json.login }}",
+              "type": "string"
+            },
+            {
+              "id": "3b4be27d-ab0c-404a-8bb3-598910747c9f",
+              "name": "Followers",
+              "value": "={{ $json.followers }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "97378d4c-5f08-4ef7-bfb7-20b02373d8c9",
+      "name": "Edit Fields",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "272ec42e-ba82-47c1-9e87-f6f3ce6d78bf",
+              "leftValue": "={{ $json['Summary Date'] }}",
+              "rightValue": "={{ $now.toISO().split('T')[0] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "542cee81-97f0-4237-8139-8046a542159b",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "a7bb113a-2039-42ae-9f72-fa8188845db7",
+      "name": "No Operation, do nothing1",
+      "notes": "already ran today, skip"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        896,
+        96
+      ],
+      "id": "df0a093d-af09-4af8-b20f-c8ffc789413f",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        272,
+        224
+      ],
+      "id": "8da77a4e-dcfa-401b-b79b-c19f33ef8ff9",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "42c498ee-a50a-41b7-9706-4482cc63abdc",
+              "name": "Error Message",
+              "value": "={{ $json.error.message }}",
+              "type": "string"
+            },
+            {
+              "id": "6ccda7a1-0cf0-428c-a4d1-f3cf40e1b8dc",
+              "name": " Node Name",
+              "value": "={{ $json['error']['node']['name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "d55f808a-ef4c-4232-bff9-af8edd2780de",
+              "name": "Timestamp",
+              "value": "={{ $now }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        224
+      ],
+      "id": "b1a5c922-9097-4ac5-a7df-5c4a35316f7d",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        688,
+        224
+      ],
+      "id": "4bdbbad0-1871-468c-88c4-fbd3a9ba27dd",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1,
+    "availableInMCP": false
+  },
+  "versionId": "6677ed8f-f7ac-4ae5-aca7-5048123262af",
+  "meta": {
+    "instanceId": "22f60916f9c7b26e6914b0421ec3dd7a647e0e5851a764c1369ac1e12e3255be"
+  },
+  "id": "412SyovJCIERjSJT",
+  "tags": []
+}
